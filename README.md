@@ -5,6 +5,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Status](https://img.shields.io/badge/status-reverse--engineered-orange)
 [![Release](https://img.shields.io/github/v/release/Igor-Shpetnyi/womier-sk80-screen)](https://github.com/Igor-Shpetnyi/womier-sk80-screen/releases/latest)
+[![Build](https://github.com/Igor-Shpetnyi/womier-sk80-screen/actions/workflows/build.yml/badge.svg)](https://github.com/Igor-Shpetnyi/womier-sk80-screen/actions/workflows/build.yml)
 
 Реверс-інжиніринг HID-протоколу вбудованого TFT-екрана механічної клавіатури **Womier SK80**
 (і, ймовірно, інших клавіатур на тому ж SONiX-чіпі, `VID_05AC&PID_024F`) — і невеликий
@@ -79,15 +80,25 @@ pyinstaller --onefile --windowed --name WomierSK80 ^
   --icon "assets/app_icon.ico" ^
   --add-data "assets;assets" ^
   --collect-data customtkinter ^
+  --collect-all pystray ^
   womier_gui.py
 ```
 
 `--collect-data customtkinter` обов'язковий — без нього збірка не включає внутрішні
-теми/шрифти customtkinter і застосунок падає при старті. Готовий `.exe` з'явиться в `dist/`.
-Файл стану `gui_state.json` (останній активний пресет) зберігається в `%APPDATA%\WomierSK80\`,
-а не поруч із `.exe` і не в тимчасовій директорії розпакування onefile-збірки (яка видаляється
-після виходу). Допоміжні виклики (`powershell`/`claude` CLI) запускаються без консольного вікна
-(`CREATE_NO_WINDOW`), тож при роботі `.exe` нічого не блимає.
+теми/шрифти customtkinter і застосунок падає при старті. `--collect-all pystray` потрібен
+для трей-іконки (застосунок все одно запуститься без нього, але без трея). Готовий `.exe`
+з'явиться в `dist/`. Файл стану `gui_state.json` (останній активний пресет) зберігається в
+`%APPDATA%\WomierSK80\`, а не поруч із `.exe` і не в тимчасовій директорії розпакування
+onefile-збірки (яка видаляється після виходу). Допоміжні виклики (`powershell`/`claude` CLI)
+запускаються без консольного вікна (`CREATE_NO_WINDOW`), тож при роботі `.exe` нічого не блимає.
+
+Той самий build-крок автоматично запускається в GitHub Actions
+([`.github/workflows/build.yml`](.github/workflows/build.yml)) при пуші в `main`, на теги `v*`
+і вручну — готовий `.exe` (poки що непідписаний) додається як build artifact. Workflow вже
+має підготовлений, але вимкнений крок підписання через
+[SignPath.io Foundation](https://signpath.io/) (безкоштовно для open-source) — активується
+сам, щойно в Settings → Secrets/Variables буде додано `SIGNPATH_API_TOKEN` і
+`SIGNPATH_ORGANIZATION_ID`/`SIGNPATH_PROJECT_SLUG`/`SIGNPATH_SIGNING_POLICY_SLUG`.
 
 ## Структура проєкту
 

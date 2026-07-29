@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch: {}
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build exe
+        run: >
+          pyinstaller --onefile --windowed --name WomierSK80
+          --icon "assets/app_icon.ico"
+          --add-data "assets;assets"
+          --collect-data customtkinter
+          --collect-all pystray
+          --noconfirm
+          womier_gui.py
+
+      - name: Upload unsigned artifact
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WomierSK80-unsigned
+          path: dist/WomierSK80.exe
+
+      # --- SignPath (опційно, вимкнено доки не налаштовано) -------------------
+      # Безкоштовне підписання для open-source проєктів: https://signpath.io/
+      #
+      # Щоб увімкнути:
+      #   1. Зареєструвати проєкт на SignPath.io, отримати organization-id,
+      #      project-slug і signing-policy-slug.
+      #   2. Settings → Secrets and variables → Actions → Secrets:
+      #        SIGNPATH_API_TOKEN
+      #   3. Settings → Secrets and variables → Actions → Variables:
+      #        SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG,
+      #        SIGNPATH_SIGNING_POLICY_SLUG
+      # Два кроки нижче самі активуються, щойно з'явиться SIGNPATH_ORGANIZATION_ID
+      # (до того — просто пропускаються, збірка unsigned-exe працює як завжди).
+      - name: Submit signing request to SignPath
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        id: signpath
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+          organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+          project-slug: '${{ vars.SIGNPATH_PROJECT_SLUG }}'
+          signing-policy-slug: '${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}'
+          github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
+          wait-for-completion: true
+          output-artifact-directory: 'dist-signed'
+
+      - name: Upload signed artifact
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: WomierSK80-signed
+          path: dist-signed/WomierSK80.exe
