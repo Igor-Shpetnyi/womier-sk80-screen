@@ -4,6 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Status](https://img.shields.io/badge/status-reverse--engineered-orange)
+[![Release](https://img.shields.io/github/v/release/Igor-Shpetnyi/womier-sk80-screen)](https://github.com/Igor-Shpetnyi/womier-sk80-screen/releases/latest)
 
 Реверс-інжиніринг HID-протоколу вбудованого TFT-екрана механічної клавіатури **Womier SK80**
 (і, ймовірно, інших клавіатур на тому ж SONiX-чіпі, `VID_05AC&PID_024F`) — і невеликий
@@ -48,6 +49,12 @@ GUI-застосунок, що показує на цьому екрані жи�
 Обґрунтування кожного з цих рішень — у [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Встановлення
+
+Найпростіше — завантажити готовий `WomierSK80.exe` зі сторінки
+[Releases](https://github.com/Igor-Shpetnyi/womier-sk80-screen/releases/latest) і запустити
+без встановлення Python чи залежностей.
+
+Або запустити з коду:
 
 Вимоги:
 - Windows (протокол і `driver_process_running()`-перевірка специфічні для Windows).
