@@ -167,6 +167,7 @@ def driver_process_running():
             ['powershell', '-NoProfile', '-Command',
              "Get-Process -Name DeviceDriver -ErrorAction SilentlyContinue | Select-Object -First 1 Id"],
             capture_output=True, text=True, timeout=5,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
         return bool(out.stdout.strip())
     except Exception:

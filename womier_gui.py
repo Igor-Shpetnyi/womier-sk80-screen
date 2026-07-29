@@ -24,11 +24,13 @@ def _bundled_dir():
 
 def _persistent_dir():
     """Директорія для файлів, які мають зберігатися між запусками (gui_state.json).
-    У PyInstaller onefile-збірці _MEIPASS видаляється після виходу — там нічого не
-    можна тримати між запусками, тому використовуємо папку поруч із самим .exe."""
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+    %APPDATA%\\WomierSK80 — стандартне місце для даних застосунку у Windows: не
+    залежить від того, звідки запущено .exe чи скрипт, і не смітить у ту саму
+    директорію, де лежить сам .exe."""
+    base = os.getenv('APPDATA') or os.path.expanduser('~')
+    d = os.path.join(base, 'WomierSK80')
+    os.makedirs(d, exist_ok=True)
+    return d
 
 
 STATE_FILE = os.path.join(_persistent_dir(), 'gui_state.json')

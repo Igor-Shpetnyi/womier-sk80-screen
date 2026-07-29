@@ -60,6 +60,7 @@ def _refresh_token_via_cli():
         subprocess.run(
             [cli, '-p', '.'], env=env, timeout=30,
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
         return True
     except Exception:
