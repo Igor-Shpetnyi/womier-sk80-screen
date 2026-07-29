@@ -1,0 +1,4 @@
+customtkinter>=5.2
+Pillow>=10.0
+numpy>=1.26
+hidapi>=0.14

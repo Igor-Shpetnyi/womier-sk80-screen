@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+gui_state.json
+.venv/
+venv/
+build/
+dist/
+*.spec
