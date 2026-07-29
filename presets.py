@@ -3,6 +3,7 @@
 
 Щоб додати новий пресет: написати функцію render(...) і додати запис у PRESETS.
 """
+import datetime
 import math
 import time
 from PIL import Image, ImageDraw, ImageFont
@@ -102,6 +103,43 @@ def _shade(color, delta):
     return tuple(max(0, min(255, c + delta)) for c in color)
 
 
+_WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+
+def _parse_resets_at(iso_str):
+    if not iso_str:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(iso_str)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_session_reset(resets_at_iso, now_dt):
+    """"Resets in 17 min" — короткий підпис під баром сесійного (5h) ліміту,
+    в стилі офіційного дашборду usage limits на Claude.ai."""
+    dt = _parse_resets_at(resets_at_iso)
+    if dt is None:
+        return ''
+    remaining_min = int((dt - now_dt).total_seconds() // 60)
+    if remaining_min <= 0:
+        return 'Resets soon'
+    if remaining_min < 60:
+        return f'Resets in {remaining_min} min'
+    h, m = divmod(remaining_min, 60)
+    return f'Resets in {h}h {m}m'
+
+
+def _format_weekly_reset(resets_at_iso, now_dt):
+    """"Resets Thu 19:00" — тижневий (7d) ліміт скидається майже завжди в інший
+    день, тому день тижня показуємо явно (день + локальний час скидання)."""
+    dt = _parse_resets_at(resets_at_iso)
+    if dt is None:
+        return ''
+    local_dt = dt.astimezone() if dt.tzinfo else dt
+    return f'Resets {_WEEKDAYS_SHORT[local_dt.weekday()]} {local_dt.strftime("%H:%M")}'
+
+
 def _draw_mascot(draw, x0, y0, size, eyes_open=True, color=(208, 106, 75),
                   y_shift=0, leg_lifts=(0, 0, 0, 0), arm_shifts=(0, 0)):
     """Маскот Clawd: тіло, 2 руки, 4 ноги, очі. Малює у 16x16-одиничній сітці.
@@ -162,6 +200,9 @@ def render_claude_limits_frames(epoch_time=None, scale=1):
     state = claude_limits.STATE
     five = state.get('five_hour_pct')
     seven = state.get('seven_day_pct')
+    now_dt = datetime.datetime.fromtimestamp(epoch_time or time.time(), tz=datetime.timezone.utc)
+    five_caption = _format_session_reset(state.get('five_hour_resets_at'), now_dt)
+    seven_caption = _format_weekly_reset(state.get('seven_day_resets_at'), now_dt)
 
     if five is None and seven is None:
         img = Image.new('RGB', (w, h), (0, 0, 0))
@@ -184,9 +225,12 @@ def render_claude_limits_frames(epoch_time=None, scale=1):
     label_w = round(16 * scale)
     bar_w = round(56 * scale)
     bar_h = round(12 * scale)
-    row_gap = round(24 * scale)
+    bar_row_h = round(24 * scale)     # рядок з баром — як і раніше
+    caption_row_h = round(11 * scale)  # новий рядок під баром: "Resets in 17 min"
+    block_h = bar_row_h + caption_row_h
     label_font = _font(_FONT_PATH_BOLD, 11, scale)
     pct_font = _font(_FONT_PATH, 11, scale)
+    caption_font = _font(_FONT_PATH, 9, scale)
 
     def compose(eyes_open, y_shift, leg_lifts, arm_shifts):
         img = Image.new('RGB', (w, h), (0, 0, 0))
@@ -194,17 +238,21 @@ def render_claude_limits_frames(epoch_time=None, scale=1):
         _draw_mascot(draw, icon_x, icon_y, icon_size, eyes_open=eyes_open, color=mascot_color,
                      y_shift=y_shift, leg_lifts=leg_lifts, arm_shifts=arm_shifts)
 
-        rows = [('5h', five), ('7d', seven)]
-        total_h = row_gap * len(rows)
-        y0 = (h - total_h) // 2 + (row_gap - bar_h) // 2
-        for i, (label, pct) in enumerate(rows):
-            y = y0 + i * row_gap
-            draw.text((bar_x, y - round(1 * scale)), label, font=label_font, fill=(210, 210, 210))
+        rows = [('5h', five, five_caption), ('7d', seven, seven_caption)]
+        total_h = block_h * len(rows)
+        y0 = (h - total_h) // 2
+        for i, (label, pct, caption) in enumerate(rows):
+            block_y = y0 + i * block_h
+            bar_y = block_y + (bar_row_h - bar_h) // 2
+            draw.text((bar_x, bar_y - round(1 * scale)), label, font=label_font, fill=(210, 210, 210))
             bx = bar_x + label_w
-            _draw_bar(draw, bx, y, bar_w, bar_h, pct, _severity_color(pct))
+            _draw_bar(draw, bx, bar_y, bar_w, bar_h, pct, _severity_color(pct))
             pct_text = f'{int(round(pct))}%' if pct is not None else '—'
-            draw.text((bx + bar_w + round(4 * scale), y - round(1 * scale)), pct_text,
+            draw.text((bx + bar_w + round(4 * scale), bar_y - round(1 * scale)), pct_text,
                        font=pct_font, fill=(230, 230, 230))
+            if caption:
+                cap_y = block_y + bar_row_h - round(2 * scale)
+                draw.text((bx, cap_y), caption, font=caption_font, fill=(140, 145, 150))
         return img
 
     # 10-кадровий біговий цикл: ноги по черзі відриваються від землі (по діагоналях),
