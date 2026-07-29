@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import threading
 import queue
 import time
@@ -13,7 +14,24 @@ import claude_limits
 from presets import PRESETS, CLOCK_STATE, CLOCK_COLOR_PRESETS, render_idle_screen
 
 CLAUDE_LIMITS_REFRESH_S = 300  # 5 хв
-STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gui_state.json')
+
+
+def _bundled_dir():
+    """Директорія з "тільки для читання" ресурсами (іконка): при звичайному запуску —
+    поруч зі скриптом, у PyInstaller onefile-збірці — тимчасова директорія розпакування."""
+    return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+
+def _persistent_dir():
+    """Директорія для файлів, які мають зберігатися між запусками (gui_state.json).
+    У PyInstaller onefile-збірці _MEIPASS видаляється після виходу — там нічого не
+    можна тримати між запусками, тому використовуємо папку поруч із самим .exe."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+STATE_FILE = os.path.join(_persistent_dir(), 'gui_state.json')
 
 
 def _load_app_state():
@@ -65,7 +83,7 @@ class App(ctk.CTk):
         self.title('Womier SK80 — Керування екраном')
         self.geometry('920x820')
         self.minsize(760, 480)
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets', 'app_icon.ico')
+        icon_path = os.path.join(_bundled_dir(), 'assets', 'app_icon.ico')
         if os.path.exists(icon_path):
             try:
                 self.iconbitmap(icon_path)

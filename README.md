@@ -61,6 +61,22 @@ python womier_gui.py
 
 Мінімальний приклад без GUI — [examples/minimal_clock.py](examples/minimal_clock.py).
 
+### Збірка standalone .exe (PyInstaller)
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --windowed --name WomierSK80 ^
+  --icon "assets/app_icon.ico" ^
+  --add-data "assets;assets" ^
+  --collect-data customtkinter ^
+  womier_gui.py
+```
+
+`--collect-data customtkinter` обов'язковий — без нього збірка не включає внутрішні
+теми/шрифти customtkinter і застосунок падає при старті. Готовий `.exe` з'явиться в `dist/`.
+Файл стану `gui_state.json` при цьому зберігається поруч із самим `.exe` (а не в тимчасовій
+директорії розпакування onefile-збірки, яка видаляється після виходу).
+
 ## Структура проєкту
 
 ```
