@@ -7,6 +7,7 @@ import time
 from tkinter import colorchooser
 
 import customtkinter as ctk
+import pystray
 from PIL import Image, ImageDraw
 
 import protocol
@@ -114,7 +115,7 @@ class App(ctk.CTk):
             pending_autostart = bool(saved_state.get('running'))
 
         self._build_layout()
-        self.protocol('WM_DELETE_WINDOW', self._on_close)
+        self.protocol('WM_DELETE_WINDOW', self._hide_to_tray)
         self._select_preset(self.selected_preset)
         self.after(150, self._drain_log_queue)
         if pending_autostart:
@@ -123,6 +124,49 @@ class App(ctk.CTk):
 
         self.claude_limits_stop = threading.Event()
         threading.Thread(target=self._claude_limits_refresher, daemon=True).start()
+
+        self.tray_icon = self._make_tray_icon()
+        threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    # ---------- трей ----------
+
+    def _make_tray_icon(self):
+        icon_path = os.path.join(_bundled_dir(), 'assets', 'app_icon.png')
+        image = Image.open(icon_path) if os.path.exists(icon_path) else Image.new('RGB', (32, 32), ACCENT)
+        menu = pystray.Menu(
+            pystray.MenuItem('Відкрити', self._on_tray_restore, default=True),
+            pystray.MenuItem('Вихід', self._on_tray_quit),
+        )
+        return pystray.Icon('womier_sk80', image, 'Womier SK80', menu)
+
+    def _on_tray_restore(self, icon=None, item=None):
+        self.after(0, self._show_window)
+
+    def _show_window(self):
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _hide_to_tray(self):
+        self.withdraw()
+        self.log('Згорнуто в трей — цикл (якщо активний) продовжує працювати. Повний вихід — через меню трея.')
+
+    def _on_tray_quit(self, icon=None, item=None):
+        self.log('Повний вихід із застосунку...')
+        self.stop_event.set()
+        self.claude_limits_stop.set()
+        _save_app_state(self.selected_preset, False)
+        try:
+            self.tray_icon.stop()
+        except Exception:
+            pass
+        threading.Thread(target=self._finish_quit, daemon=True).start()
+
+    def _finish_quit(self):
+        if self.worker is not None:
+            self.worker.join(timeout=10)
+        self._send_idle_screen()
+        self.after(0, self.destroy)
 
     def _claude_limits_refresher(self):
         while not self.claude_limits_stop.is_set():
@@ -511,10 +555,6 @@ class App(ctk.CTk):
         except Exception as e:
             self.log(f'ПОМИЛКА (заставка): {e}')
 
-    def _on_close(self):
-        self.stop_event.set()
-        self.claude_limits_stop.set()
-        self.destroy()
 
     def _send_preset(self, preset, render_time):
         """Рендерить і надсилає один пресет (звичайний кадр або анімацію render_frames),
