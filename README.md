@@ -1,5 +1,10 @@
 # Womier SK80 — власний контент на вбудований екран
 
+[![License: MIT](https://img.shields.io/github/license/Igor-Shpetnyi/womier-sk80-screen)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![Status](https://img.shields.io/badge/status-reverse--engineered-orange)
+
 Реверс-інжиніринг HID-протоколу вбудованого TFT-екрана механічної клавіатури **Womier SK80**
 (і, ймовірно, інших клавіатур на тому ж SONiX-чіпі, `VID_05AC&PID_024F`) — і невеликий
 GUI-застосунок, що показує на цьому екрані живий контент напряму, в обхід фірмового Windows-драйвера,
