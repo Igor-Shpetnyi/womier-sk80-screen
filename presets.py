@@ -116,18 +116,17 @@ def _parse_resets_at(iso_str):
 
 
 def _format_session_reset(resets_at_iso, now_dt):
-    """"Resets in 17 min" — короткий підпис під баром сесійного (5h) ліміту,
-    в стилі офіційного дашборду usage limits на Claude.ai."""
+    """"Resets 14:25" — конкретний час скидання сесійного (5h) ліміту, БЕЗ дня
+    тижня (вкладається в кілька годин наперед, тож день і так очевидний).
+    Навмисно не таймер зворотного відліку: кадр на екрані оновлюється лише
+    коли реально змінюються дані (change-detection у womier_gui.py), а не
+    щохвилини — "17 хв" застаріло б і показувало неправду між реальними
+    відправками на клавіатуру. Конкретний час лишається правильним завжди."""
     dt = _parse_resets_at(resets_at_iso)
     if dt is None:
         return ''
-    remaining_min = int((dt - now_dt).total_seconds() // 60)
-    if remaining_min <= 0:
-        return 'Resets soon'
-    if remaining_min < 60:
-        return f'Resets in {remaining_min} min'
-    h, m = divmod(remaining_min, 60)
-    return f'Resets in {h}h {m}m'
+    local_dt = dt.astimezone() if dt.tzinfo else dt
+    return f'Resets {local_dt.strftime("%H:%M")}'
 
 
 def _format_weekly_reset(resets_at_iso, now_dt):
