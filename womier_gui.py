@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw
 
 import protocol
 import claude_limits
-from presets import PRESETS, CLOCK_STATE, CLOCK_COLOR_PRESETS, render_idle_screen
+from presets import PRESETS, CLOCK_STATE, CLOCK_COLOR_PRESETS, render_idle_screen, claude_limits_summary
 
 CLAUDE_LIMITS_REFRESH_S = 300  # 5 хв
 
@@ -191,9 +191,7 @@ class App(ctk.CTk):
         if self.claude_limits_error_streak:
             self.log('Ліміти Claude знову доступні — помилку усунено.')
         self.claude_limits_error_streak = 0
-        five = claude_limits.STATE.get('five_hour_pct')
-        seven = claude_limits.STATE.get('seven_day_pct')
-        self.log(f'Ліміти Claude: 5h={five}% 7d={seven}%')
+        self.log(f'Ліміти Claude: {claude_limits_summary()}')
         self.after(0, self._clear_claude_limits_error)
         return True
 

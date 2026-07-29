@@ -140,6 +140,24 @@ def _format_weekly_reset(resets_at_iso, now_dt):
     return f'Resets {_WEEKDAYS_SHORT[local_dt.weekday()]} {local_dt.strftime("%H:%M")}'
 
 
+def claude_limits_summary(now_dt=None):
+    """Компактний текстовий підсумок лімітів разом з часом скидання — те саме, що
+    показано на екрані пресету, але одним рядком для журналу GUI."""
+    state = claude_limits.STATE
+    now_dt = now_dt or datetime.datetime.now(datetime.timezone.utc)
+    five = state.get('five_hour_pct')
+    seven = state.get('seven_day_pct')
+
+    parts = []
+    if five is not None:
+        cap = _format_session_reset(state.get('five_hour_resets_at'), now_dt)
+        parts.append(f'5h={five}%' + (f' [{cap}]' if cap else ''))
+    if seven is not None:
+        cap = _format_weekly_reset(state.get('seven_day_resets_at'), now_dt)
+        parts.append(f'7d={seven}%' + (f' [{cap}]' if cap else ''))
+    return ' '.join(parts) if parts else 'немає даних'
+
+
 def _draw_mascot(draw, x0, y0, size, eyes_open=True, color=(208, 106, 75),
                   y_shift=0, leg_lifts=(0, 0, 0, 0), arm_shifts=(0, 0)):
     """Маскот Clawd: тіло, 2 руки, 4 ноги, очі. Малює у 16x16-одиничній сітці.
